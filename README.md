@@ -10,7 +10,7 @@ Quarto files work well in [`poly-markdown` or `poly-R` modes](https://polymode.g
     # this will exist under julia-mode (which you'll have to install separately)
     ```
 
-If you want to use [ESS](https://ess.r-project.org/) your R code chunks, you'll need `poly-R`. Otherwise, `poly-markdown` is enough. (`poly-R` in turn depends on `poly-markdown`).
+If you want to use [ESS](https://ess.r-project.org/) for your R code chunks, you'll need `poly-R`. Otherwise, `poly-markdown` is enough.
 
 ## Installation
 
@@ -22,7 +22,7 @@ Then, search for `poly-markdown` or `poly-R`, hit Enter, and finally press the `
 
 ## Enabling the modes
 
-Then, ensure Emacs associates the right mode with `.qmd` files when opening them by adding the following to your `.emacs`:
+To ensure Emacs associates the right mode with `.qmd` files when opening them, add the following to your `.emacs`:
 
     ;; if you're using poly-R
     (add-to-list 'auto-mode-alist '("\\.qmd$" . poly-markdown+r-mode))
