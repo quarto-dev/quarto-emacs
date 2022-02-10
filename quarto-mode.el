@@ -4,6 +4,7 @@
 ;; Maintainer: Carlos Scheidegger
 ;; Copyright (C) 2022 RStudio PBC
 ;; Version: 0.0.1
+;; package-requires: ((emacs "25") (polymode "0.2.2") (poly-markdown "0.2.2"))
 ;; URL: https://github.com/quarto-dev/quarto-emacs
 ;; Keywords: languages, multi-modes
 ;;
@@ -35,6 +36,8 @@
 ;;; Code:
 
 (require 'polymode)
+(require 'poly-markdown)
+(require 'shell)
 
 (defgroup quarto nil
   "Settings for the quarto polymode"
@@ -48,38 +51,41 @@
   :group 'quarto
   :type 'object)
 
-(require 'poly-markdown)
+(defvar quarto-mode-super-mode nil) 
 
-(if (require 'ess-mode nil 'noerror)
-    (progn
-      (require 'ess-r-mode nil 'noerror)
-      (require 'poly-R)
-      (define-polymode poly-quarto-mode poly-markdown+r-mode :lighter " Quarto"))
-  (progn
-    (define-polymode poly-quarto-mode poly-markdown-mode :lighter " Quarto")))
+;; this package doesn't require poly-R, ess-mode, or ess-r-mode, but
+;; works differently when these are available.
+(if (and (require 'ess-mode nil 'noerror)
+	 (require 'ess-r-mode nil 'noerror)
+	 (require 'poly-R nil 'noerror))
+    (setq quarto-mode-super-mode poly-markdown+r-mode)
+  (setq quarto-mode-super-mode poly-markdown-mode))
 
-(defun pm--quarto-output-file-sniffer ()
+;;;###autoload (autoload 'poly-quarto-mode "quarto-mode")
+(define-polymode poly-quarto-mode quarto-mode-super-mode :lighter " Quarto"))
+
+(defun quarto-pm--output-file-sniffer ()
   (goto-char (point-min))
   (let (files)
     (while (re-search-forward "Output created: +\\(.*\\)" nil t)
       (push (expand-file-name (match-string 1)) files))
     (reverse (delete-dups files))))
 
-(defun pm--quarto-shell-auto-selector (action &rest _ignore)
+(defun quarto-pm--shell-auto-selector (action &rest _ignore)
   (cl-case action
     (doc "AUTO DETECT")
     (command "quarto render %i")
-    (output-file #'pm--quarto-output-file-sniffer)))
+    (output-file #'quarto-pm--output-file-sniffer)))
 
 
-(defcustom poly-quarto-markdown-exporter
+(defcustom quarto-poly-markdown-exporter
   (pm-shell-exporter :name "quarto"
 		     :from
 		     '(("quarto" "\\.qmd" "quarto Markdown"
 			"quarto render --to=%t --output=%o"))
 		     :to
-		     '(("auto" . pm--quarto-shell-auto-selector)
-                       ("default" . pm--quarto-shell-auto-selector)
+		     '(("auto" . quarto-pm--shell-auto-selector)
+                       ("default" . quarto-pm--shell-auto-selector)
 		       ("html" "html" "html document" "html")
                        ("pdf" "pdf" "pdf document" "pdf")
                        ("word" "docx" "word document" "docx")
@@ -96,10 +102,8 @@
   :group 'quarto
   :type 'boolean)
 
-(polymode-register-exporter poly-quarto-markdown-exporter
+(polymode-register-exporter quarto-poly-markdown-exporter
 			    nil poly-quarto-polymode)
-
-(add-to-list 'auto-mode-alist '("\\.qmd\\'" . poly-quarto-mode))
 
 (defun quarto-preview ()
   "  Starts a quarto preview process to automatically rerender documents
@@ -125,11 +129,10 @@
 		  "quarto"
 		  "preview"
 		  buffer-file-name))))
-	 (process (apply 'start-process args)))
+	 (process (apply #'start-process args)))
     (with-current-buffer (process-buffer process)
       (when quarto-preview-display-buffer
 	(display-buffer (current-buffer)))
-      (require 'shell)
       (shell-mode)
       (set-process-filter process 'comint-output-filter))))
 
@@ -139,4 +142,10 @@
   '("Quarto"
     ["Start Preview" quarto-preview t]))
 
+;;;###autoload
+(add-to-list 'auto-mode-alist '("\\.qmd\\'" . poly-quarto-mode))
+
+
 (provide 'quarto-mode)
+
+;;; quarto-mode.el ends here
