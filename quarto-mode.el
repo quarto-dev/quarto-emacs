@@ -62,6 +62,7 @@
   (define-polymode poly-quarto-mode poly-markdown-mode :lighter " Quarto"))
 
 (defun quarto-pm--output-file-sniffer ()
+  "Detect the output format from a quarto run."
   (goto-char (point-min))
   (let (files)
     (while (re-search-forward "Output created: +\\(.*\\)" nil t)
@@ -69,6 +70,11 @@
     (reverse (delete-dups files))))
 
 (defun quarto-pm--shell-auto-selector (action &rest _ignore)
+  "Select the output format automatically from a run of quarto in a shell.
+
+  ACTION decides which action to take, `doc`, `command` or `output-file`.
+
+  (This is an internal function.)"
   (cl-case action
     (doc "AUTO DETECT")
     (command "quarto render %i")
@@ -88,14 +94,14 @@
                        ("word" "docx" "word document" "docx")
 		       ("revealjs" "html" "revealjs presentation" "revealjs"))) ;; TODO fill this out automatically
   "Quarto Markdown exporter.
-  Please note that with 'AUTO DETECT' export options, output file
+Please note that with 'AUTO DETECT' export options, output file
   names are inferred by quarto from the appropriate metadata.
   This, output file names don't comply with `polymode-exporter-output-file-format'."
   :group 'polymode-export
   :type 'object)
 
 (defcustom quarto-preview-display-buffer t
-  "when nil, quarto-preview does not automatically display buffer"
+  "When nil, `quarto-preview' does not automatically display buffer."
   :group 'quarto
   :type 'boolean)
 
@@ -103,15 +109,13 @@
 			    nil poly-quarto-polymode)
 
 (defun quarto-preview ()
-  "  Starts a quarto preview process to automatically rerender documents
-  when they're changed.
+  "Start a quarto preview process to automatically rerender documents.
 
   When run from a `_quarto.yml` buffer, this previews the entire book or
-  website. When run from a `.qmd` buffer, this previews that specific file.
+  website.  When run from a `.qmd` buffer, this previews that specific file.
 
   To control whether or not to show the display, customize
-  `quarto-preview-display-buffer`.
-"
+  `quarto-preview-display-buffer`."
   (interactive)
   (let* ((args
 	  (cond
