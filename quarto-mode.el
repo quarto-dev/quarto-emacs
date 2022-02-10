@@ -51,18 +51,15 @@
   :group 'quarto
   :type 'object)
 
-(defvar quarto-mode-super-mode nil) 
-
 ;; this package doesn't require poly-R, ess-mode, or ess-r-mode, but
 ;; works differently when these are available.
 (if (and (require 'ess-mode nil 'noerror)
 	 (require 'ess-r-mode nil 'noerror)
 	 (require 'poly-R nil 'noerror))
-    (setq quarto-mode-super-mode poly-markdown+r-mode)
-  (setq quarto-mode-super-mode poly-markdown-mode))
-
 ;;;###autoload (autoload 'poly-quarto-mode "quarto-mode")
-(define-polymode poly-quarto-mode quarto-mode-super-mode :lighter " Quarto"))
+    (define-polymode poly-quarto-mode poly-markdown+r-mode :lighter " Quarto")
+;;;###autoload (autoload 'poly-quarto-mode "quarto-mode")
+  (define-polymode poly-quarto-mode poly-markdown-mode :lighter " Quarto"))
 
 (defun quarto-pm--output-file-sniffer ()
   (goto-char (point-min))
