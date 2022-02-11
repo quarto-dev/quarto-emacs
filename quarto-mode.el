@@ -209,10 +209,18 @@ This function inserts the output of `quarto render` in BUF."
 
 ;;; Advice functions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun quarto-mode--is-callout-p ()
+(defun quarto-mode--is-block-p ()
   (let ((this-para (thing-at-point 'paragraph t)))
-    (and (string-match "^:::{.callout" this-para)
-	 (string-match ":::$" this-para))))
+    (or (quarto-mode--is-start-of-block-p this-para)
+	(quarto-mode--is-end-of-block-p this-para))))
+
+(defun quarto-mode--is-start-of-block-p (para)
+  "returns true if PARA is the start of a pandoc block"
+  (string-match "^:::{[^}]+}" para))
+
+(defun quarto-mode--is-end-of-block-p (para)
+  "returns true if PARA is the end of a pandoc block"
+  (string-match ":::$" para))
 
 (defun quarto-mode--fill-paragraph (orig-fun &rest args)
   "Fill paragraph in quarto mode.
@@ -220,19 +228,26 @@ Overrides `fill-paragraph` which is ORIG-FUN when necessary and
 passes ARGS to it."
   (cond
    ((and (boundp 'poly-quarto-mode)
-	 (quarto-mode--is-callout-p))
-    (save-excursion
-      (re-search-backward ":::{\\.callout-.*}")
-      (re-search-forward ":::{\\.callout-.*}")
-      (insert "\n")
-      (re-search-forward ":::$")
-      (re-search-backward ":::$")
-      (insert "\n")
-      (forward-paragraph -2)
-      (apply orig-fun args)
-      (delete-char 1)
-      (forward-paragraph)
-      (delete-char 1)))
+	 (quarto-mode--is-block-p))
+    (let* ((para (thing-at-point 'paragraph t))
+	   (is-start (quarto-mode--is-start-of-block-p para))
+	   (is-end (quarto-mode--is-end-of-block-p para)))
+      (save-excursion
+	(when is-start
+	  (re-search-backward ":::{[^}]+}")
+	  (re-search-forward ":::{[^}]+}")
+	  (insert "\n"))
+	(when is-end
+	  (re-search-forward ":::")
+	  (re-search-backward ":::")
+	  (insert "\n")
+	  (forward-paragraph -2))
+	(apply orig-fun args)
+	(when is-start
+	  (delete-char 1))
+	(forward-paragraph)
+	(when is-end
+	  (delete-char 1)))))
    (t (apply orig-fun args))))
 
 (advice-add 'fill-paragraph :around #'quarto-mode--fill-paragraph)
