@@ -53,10 +53,12 @@
 	 (require 'poly-R nil 'noerror))
 ;;;###autoload (autoload 'poly-quarto-mode "quarto-mode")
     (define-polymode poly-quarto-mode poly-markdown+r-mode
-      quarto-mode--docstring :lighter " Quarto")
+      "Minor mode for editing quarto files."
+      :lighter " Quarto")
 ;;;###autoload (autoload 'poly-quarto-mode "quarto-mode")
   (define-polymode poly-quarto-mode poly-markdown-mode
-      quarto-mode--docstring:lighter " Quarto"))
+      "Minor mode for editing quarto files."
+      :lighter " Quarto"))
 
 ;;; Customizable variables ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -204,6 +206,38 @@ This function inserts the output of `quarto render` in BUF."
   )
 
 (add-hook 'poly-quarto-mode-hook 'quarto-mode-default-hook)
+
+;;; Advice functions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun quarto-mode--is-callout-p ()
+  (let ((this-para (thing-at-point 'paragraph t)))
+    (and (string-match "^:::{.callout" this-para)
+	 (string-match ":::$" this-para))))
+
+(defun quarto-mode--fill-paragraph (orig-fun &rest args)
+  "Fill paragraph in quarto mode.
+Overrides `fill-paragraph` which is ORIG-FUN when necessary and
+passes ARGS to it."
+  (cond
+   ((and (boundp 'poly-quarto-mode)
+	 (quarto-mode--is-callout-p))
+    (save-excursion
+      (re-search-backward ":::{\\.callout-.*}")
+      (re-search-forward ":::{\\.callout-.*}")
+      (insert "\n")
+      (re-search-forward ":::$")
+      (re-search-backward ":::$")
+      (insert "\n")
+      (forward-paragraph -2)
+      (apply orig-fun args)
+      (delete-char 1)
+      (forward-paragraph)
+      (delete-char 1)))
+   (t (apply orig-fun args))))
+
+(advice-add 'fill-paragraph :around #'quarto-mode--fill-paragraph)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide 'quarto-mode)
 
