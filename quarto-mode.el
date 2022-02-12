@@ -128,35 +128,92 @@ Please note that with 'AUTO DETECT' export options, output file
     (command "quarto render %i")
     (output-file #'quarto-pm--output-file-sniffer)))
 
+;; FIXME will this work on windows? :shrug:
+(defun quarto-mode--parent-directories (file-name)
+  (let* ((dir (file-name-directory file-name))
+	 (result '()))
+    (while (not (string-equal dir "/"))
+      (push dir result)
+      (setq dir (file-name-directory
+		 (substring dir 0 -1))))
+    (push "/" result)
+    (reverse result)))
+	    
+(defun quarto-mode--buffer-in-quarto-project-p ()
+  (let* ((dirs (quarto-mode--parent-directories buffer-file-name))
+	 result)
+    (while (not (null dirs))
+      (let ((dir (car dirs)))
+	(cond
+	 ((file-exists-p (concat dir "_quarto.yml"))
+	  (setq result dir
+		dirs '()))
+	 (t
+	  (setq dirs (cdr dirs))))))
+    result))
+
+(defvar quarto-mode--url-to-browse nil)
+
+(defun quarto-mode--preview-process-filter (proc string)
+  (when (and (buffer-live-p (process-buffer proc))
+	     (string-match (rx line-start
+			       (*? anything)
+			       "Browse at "
+			       (*? anything)
+			       (group "http" (1+ (any "A-Za-z0-9" ":/_")))
+			       (*? anything)
+			       line-end)
+			   string))
+    (with-current-buffer (process-buffer proc)
+      (when quarto-mode--url-to-browse
+	(browse-url (concat (match-string 1 string) quarto-mode--url-to-browse))
+	(setq quarto-mode--url-to-browse nil))))
+  (comint-output-filter proc string))
 
 (defun quarto-preview ()
   "Start a quarto preview process to automatically rerender documents.
 
-  When run from a `_quarto.yml` buffer, this previews the entire book or
-  website.  When run from a `.qmd` buffer, this previews that specific file.
+`quarto-preview` checks parent directories for a `_quarto.yml`
+file. If one is found, then `quarto-preview` previews that entire
+project, this is \"project mode\"..
 
-  To control whether or not to show the display, customize
-  `quarto-preview-display-buffer`."
+If not, then `quarto-preview` previews the file for the current
+buffer, this is \"file mode\".
+
+In project mode, project files aren't automatically watched in
+the file system.
+
+To control whether or not to show the display, customize
+`quarto-preview-display-buffer`."
   (interactive)
-  (let* ((args
+  (let* ((project-directory (quarto-mode--buffer-in-quarto-project-p))
+	 (browse-file (concat (file-name-sans-extension buffer-file-name) ".html"))
+	 (server-path (cond (project-directory
+			     (file-relative-name browse-file project-directory))
+			    (t "")))
+	 (process
 	  (cond
-	   ((string-equal (file-name-nondirectory buffer-file-name) "_quarto.yml")
-	    (list (format "quarto-preview-%s" buffer-file-name)
-		  "*quarto-preview*"
-		  quarto-command
-		  "preview"))
+	   (project-directory
+	    (let ((default-directory project-directory))
+	      (make-process :name (format "quarto-preview-%s" project-directory)
+			    :buffer "*quarto-preview*"
+			    :command (list quarto-command
+					   "preview"
+					   "--no-browser"
+					   "--no-watch-inputs")
+			    :file-handler t)))
 	   (t
-	    (list (format "quarto-preview-%s" buffer-file-name)
-		  "*quarto-preview*"
-		  quarto-command
-		  "preview"
-		  buffer-file-name))))
-	 (process (apply #'start-process args)))
+	    (make-process :name (format "quarto-preview-%s" buffer-file-name)
+			  :buffer "*quarto-preview*"
+			  :command (list quarto-command
+					 "preview"
+					 buffer-file-name))))))
     (with-current-buffer (process-buffer process)
+      (setq quarto-mode--url-to-browse server-path)
       (when quarto-preview-display-buffer
 	(display-buffer (current-buffer)))
       (shell-mode)
-      (set-process-filter process 'comint-output-filter))))
+      (set-process-filter process 'quarto-mode--preview-process-filter))))
 
 (easy-menu-define quarto-menu
   (list poly-quarto-mode-map)
