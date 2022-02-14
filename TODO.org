@@ -12,3 +12,10 @@ http://localhost:3848/quarto-render/
 
 We should teach quarto-mode to obey these.
 
+
+* Bugs
+
+** Interaction with uniquify
+
+polymode does bad things to uniquify mode line.
+

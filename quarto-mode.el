@@ -46,19 +46,23 @@
 (defconst quarto-mode--docstring
   "Minor mode for editing quarto files.")
 
+(defvar quarto-mode-map (make-sparse-keymap))
+
 ;; this package doesn't require poly-R, ess-mode, or ess-r-mode, but
 ;; works differently when these are available.
 (if (and (require 'ess-mode nil 'noerror)
 	 (require 'ess-r-mode nil 'noerror)
 	 (require 'poly-R nil 'noerror))
 ;;;###autoload (autoload 'poly-quarto-mode "quarto-mode")
-    (define-polymode poly-quarto-mode poly-markdown+r-mode
-      "Minor mode for editing quarto files."
-      :lighter " Quarto")
+    (eval '(define-polymode poly-quarto-mode poly-markdown+r-mode
+	     "Minor mode for editing quarto files."
+	     :lighter " Quarto"
+	     :keymap quarto-mode-map))
 ;;;###autoload (autoload 'poly-quarto-mode "quarto-mode")
-  (define-polymode poly-quarto-mode poly-markdown-mode
-      "Minor mode for editing quarto files."
-      :lighter " Quarto"))
+  (eval '(define-polymode poly-quarto-mode poly-markdown-mode
+	   "Minor mode for editing quarto files."
+	   :lighter " Quarto"
+	   :keymap quarto-mode-map)))
 
 ;;; Customizable variables ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -152,24 +156,6 @@ Please note that with 'AUTO DETECT' export options, output file
 	  (setq dirs (cdr dirs))))))
     result))
 
-(defvar quarto-mode--url-to-browse nil)
-
-(defun quarto-mode--preview-process-filter (proc string)
-  (when (and (buffer-live-p (process-buffer proc))
-	     (string-match (rx line-start
-			       (*? anything)
-			       "Browse at "
-			       (*? anything)
-			       (group "http" (1+ (any "A-Za-z0-9" ":/_")))
-			       (*? anything)
-			       line-end)
-			   string))
-    (with-current-buffer (process-buffer proc)
-      (when quarto-mode--url-to-browse
-	(browse-url (concat (match-string 1 string) quarto-mode--url-to-browse))
-	(setq quarto-mode--url-to-browse nil))))
-  (comint-output-filter proc string))
-
 (defun quarto-preview ()
   "Start a quarto preview process to automatically rerender documents.
 
@@ -187,9 +173,8 @@ To control whether or not to show the display, customize
 `quarto-preview-display-buffer`."
   (interactive)
   (let* ((project-directory (quarto-mode--buffer-in-quarto-project-p))
-	 (browse-file (concat (file-name-sans-extension buffer-file-name) ".html"))
-	 (server-path (cond (project-directory
-			     (file-relative-name browse-file project-directory))
+	 (browser-path (cond (project-directory
+			     (file-relative-name buffer-file-name project-directory))
 			    (t "")))
 	 (process
 	  (cond
@@ -199,7 +184,8 @@ To control whether or not to show the display, customize
 			    :buffer "*quarto-preview*"
 			    :command (list quarto-command
 					   "preview"
-					   "--no-browser"
+					   "--browser-path"
+					   browser-path
 					   "--no-watch-inputs")
 			    :file-handler t)))
 	   (t
@@ -209,14 +195,13 @@ To control whether or not to show the display, customize
 					 "preview"
 					 buffer-file-name))))))
     (with-current-buffer (process-buffer process)
-      (setq quarto-mode--url-to-browse server-path)
       (when quarto-preview-display-buffer
 	(display-buffer (current-buffer)))
       (shell-mode)
-      (set-process-filter process 'quarto-mode--preview-process-filter))))
+      (set-process-filter process 'comint-output-filter))))
 
 (easy-menu-define quarto-menu
-  (list poly-quarto-mode-map)
+  (list quarto-mode-map)
   "Menu for quarto-mode"
   '("Quarto"
     ["Start Preview" quarto-preview t]))
@@ -241,9 +226,10 @@ This function inserts the output of `quarto render` in BUF."
 		  "*quarto-render-output*"
 		  t
 		  "render" quarto-input-name (concat "--output=" quarto-output-name) "--self-contained")
+    ;; (with-current-buffer (get-buffer "*quarto-render-output*")
+    ;;   (
     ;; how do we deal with formats?
     (with-current-buffer buf
-      ;; (insert "FOO")
       (insert-file-contents quarto-output-name)
     )
     (delete-file quarto-input-name)
