@@ -214,6 +214,9 @@ To control whether or not to show the display, customize
 
 This function inserts the output of `quarto render` in BUF."
 
+  (with-current-buffer (get-file-buffer name)
+    (when (quarto-mode--buffer-in-quarto-project-p)
+      (error "Quarto documents in projects cannot be previewed in standalone mode. Consider quarto-preview instead")))
   ;; Quarto expects files to be in specific locations, so we
   ;; use make-temp-name instead of make-temp-file
   (let* ((file-directory (file-name-directory name))
@@ -226,15 +229,10 @@ This function inserts the output of `quarto render` in BUF."
 		  "*quarto-render-output*"
 		  t
 		  "render" quarto-input-name (concat "--output=" quarto-output-name) "--self-contained")
-    ;; (with-current-buffer (get-buffer "*quarto-render-output*")
-    ;;   (
-    ;; how do we deal with formats?
     (with-current-buffer buf
-      (insert-file-contents quarto-output-name)
-    )
+      (insert-file-contents quarto-output-name))
     (delete-file quarto-input-name)
-    (delete-file quarto-output-name)
-    ))
+    (delete-file quarto-output-name)))
 
 (defun quarto-mode-default-hook ()
   "set up the default file-local variables in quarto-mode."

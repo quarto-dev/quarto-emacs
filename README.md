@@ -10,7 +10,11 @@ there are a few options below:
 If you're comfortable adding packages manually to your Emacs setup,
 download `quarto-mode.el` from this repo, add it to your path, and add
 `(require 'quarto-mode)`. You will need the same dependencies as
-described below.
+described below. 
+
+In addition, you need to make sure you have a recent version of
+`markdown-mode` (specifically, you need to have pulled markdown mode
+from `melpa` after 2022-02-12).
 
 `quarto-mode` builds on `poly-R` and `poly-markdown` and supports
 `quarto preview` mode, which watches your filesystem for changes to
