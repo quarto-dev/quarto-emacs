@@ -1,11 +1,11 @@
-# Emacs modes for quarto
+## Emacs modes for quarto
 
 We are currently in the process of [getting MELPA approval for the
 `quarto-mode.el`
 package](https://github.com/melpa/melpa/pull/7900). In the meantime,
-there are a few options below:
+there are two options for using Quarto with Emacs:
 
-## Using quarto with `quarto-mode.el`
+### Option 1: `quarto-mode.el` (extending `poly-markdown-mode` and/or `poly-markdown+r-mode`)
 
 If you're comfortable adding packages manually to your Emacs setup,
 download `quarto-mode.el` from this repo, add it to your path, and add
@@ -16,42 +16,22 @@ In addition, you need to make sure you have a recent version of
 `markdown-mode` (specifically, you need to have pulled markdown mode
 from `melpa` after 2022-02-12).
 
-`quarto-mode` builds on `poly-R` and `poly-markdown` and supports
-`quarto preview` mode, which watches your filesystem for changes to
-quarto files and shows a preview on a web browser window. You can
+You will need to install either `poly-markdown` or `poly-R` alongside `quarto-mode`
+(use `poly-markdown` for Jupyter/Python, use `poly-R` to use ESS).
+
+`quarto-mode` supports `quarto preview`, which watches your filesystem 
+for changes to quarto files and shows a preview on a web browser window. You can
 start a `quarto preview` session through the Quarto menu on the Emacs
 menu bar or directly by calling the function `quarto-preview`.
 
-## Using Quarto with existing Emacs packages
+If you run `quarto-preview` on a `.qmd` buffer, `quarto preview` will rerender only that file. If you run `quarto-preview` on a `_quarto.yml` buffer, it will watch all files in that project.
 
-Quarto files work well in [`poly-markdown` or `poly-R`
+### Option 2: `poly-markdown-mode` and/or `poly-markdown+r-mode` mapped to `.qmd` files
+
+If you don't wish to install `quarto-mode.el`, you can use [`poly-markdown` or `poly-R`
 modes](https://polymode.github.io/), both available in the standard
-Emacs package repositories. `poly-markdown` includes full language
-support for any mode you have installed in Emacs, and it uses the
-chunk name to decide.
-
-    ```{python}
-    # this will exist under python-mode
-    ```
-    
-    ```{julia}
-    # this will exist under julia-mode (which you'll have to install separately)
-    ```
-
-If you want to use [ESS](https://ess.r-project.org/) for your R code
-chunks, you'll need `poly-R`. Otherwise, `poly-markdown` is enough.
-
-### Installation
-
-To install either mode:
-
-    M-x list-packages
-    
-Then, search for `poly-markdown` or `poly-R`, hit Enter, and finally
-press the `Install` button on the subsequent window, under the
-"Status" line.
-
-### Enabling the modes
+Emacs package repositories. In this configuration there are no special 
+quarto commands (e.g. `quarto-preview`) but you'll still get all polymode functionality in the quarto code cells and YAML front matter.
 
 To ensure Emacs associates the right mode with `.qmd` files when
 opening them, add the following to your `.emacs`:
