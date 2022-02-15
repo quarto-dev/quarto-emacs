@@ -4,7 +4,7 @@
 ;; Maintainer: Carlos Scheidegger
 ;; Copyright (C) 2022 RStudio PBC
 ;; Version: 0.0.1
-;; package-requires: ((emacs "25") (polymode "0.2.2") (poly-markdown "0.2.2") (markdown-mode "2.3"))
+;; package-requires: ((emacs "25") (polymode "0.2.2") (poly-markdown "0.2.2") (markdown-mode "2.3") (request "0.3.2"))
 ;; URL: https://github.com/quarto-dev/quarto-emacs
 ;; Keywords: languages, multi-modes
 ;;
@@ -40,6 +40,7 @@
 (require 'poly-markdown)
 (require 'shell)
 (require 'mode-local)
+(require 'request)
 
 ;;; Requires ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -156,6 +157,35 @@ Please note that with 'AUTO DETECT' export options, output file
 	  (setq dirs (cdr dirs))))))
     result))
 
+(defvar quarto-mode--preview-process nil)
+(defvar quarto-mode--preview-url nil)
+(defvar quarto-mode--preview-project nil)
+
+(defun quarto-mode--process-line (line)
+  (with-current-buffer (get-buffer-create "*debug*")
+    (insert line))
+  (let ((re-url ".*Browse at \\(http://[.-:A-Z_a-z-]+?\\)$"))
+    (cond
+     ((string-match re-url line)
+      (setq quarto-mode--preview-url
+	    (url-generic-parse-url (match-string 1 line)))))))
+
+(defun quarto-mode--process-filter (proc string)
+  (with-current-buffer (get-buffer "*quarto-preview*")
+    (let ((prev-lines (count-lines (point-min) (point-max))))
+      (comint-output-filter proc string)
+      (let* ((curr-lines (count-lines (point-min) (point-max)))
+	     (this-line prev-lines))
+	(save-excursion
+	  (goto-char (point-min))
+	  (forward-line (- this-line 1))
+	  (while (<= this-line curr-lines)
+	    (let ((line (buffer-substring (point)
+					  (progn (forward-line 1)
+						 (point)))))
+	      (quarto-mode--process-line line)
+	      (setq this-line (+ this-line 1)))))))))
+
 (defun quarto-preview ()
   "Start a quarto preview process to automatically rerender documents.
 
@@ -194,11 +224,13 @@ To control whether or not to show the display, customize
 			  :command (list quarto-command
 					 "preview"
 					 buffer-file-name))))))
+    (setq quarto-mode--preview-process process)
     (with-current-buffer (process-buffer process)
+      (setq quarto-mode--preview-project project-directory)
       (when quarto-preview-display-buffer
 	(display-buffer (current-buffer)))
       (shell-mode)
-      (set-process-filter process 'comint-output-filter))))
+      (set-process-filter process 'quarto-mode--process-filter))))
 
 (easy-menu-define quarto-menu
   (list quarto-mode-map)
@@ -214,15 +246,38 @@ To control whether or not to show the display, customize
 
 This function inserts the output of `quarto render` in BUF."
 
+  ;; This handles previews in projects (it all goes through quarto-preview)
   (with-current-buffer (get-file-buffer name)
-    (when (quarto-mode--buffer-in-quarto-project-p)
-      (error "Quarto documents in projects cannot be previewed in standalone mode. Consider quarto-preview instead")))
+    (let* ((this-project-directory
+	    (quarto-mode--buffer-in-quarto-project-p)))
+      (when this-project-directory
+	(cond
+	 ;; no process or exited process: restart
+	 ((or (null quarto-mode--preview-project)
+	      (and quarto-mode--preview-process
+		   (member (process-status quarto-mode--preview-process)
+			   (list 'exit 'signal nil))))
+	  (quarto-preview)
+	  (error (format "Opening %s via quarto-preview." name)))
+	 ((not (string-equal this-project-directory
+			     quarto-mode--preview-project))
+	  (error "quarto-preview must be running on the same project as this file. (To switch projects, close *quarto-preview*.)"))
+	 (t
+	  (browse-url (format "%s://%s:%s/%s"
+			      (url-type quarto-mode--preview-url)
+			      (url-host quarto-mode--preview-url)
+			      (url-port quarto-mode--preview-url)
+			      (concat (file-name-sans-extension
+				       (file-relative-name
+					buffer-file-name quarto-mode--preview-project))
+				      ".html"))))))))
+
+  ;; This handles non-project files.
   ;; Quarto expects files to be in specific locations, so we
   ;; use make-temp-name instead of make-temp-file
   (let* ((file-directory (file-name-directory name))
 	 (quarto-input-name (concat (make-temp-name file-directory) ".qmd"))
-	 (quarto-output-name (concat (file-name-sans-extension quarto-input-name) ".html"))
-	 )
+	 (quarto-output-name (concat (file-name-sans-extension quarto-input-name) ".html")))
     (write-region begin-region end-region quarto-input-name)
     (call-process quarto-command
 		  nil
