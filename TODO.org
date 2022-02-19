@@ -19,3 +19,16 @@ We should teach quarto-mode to obey these.
 
 polymode does bad things to uniquify mode line.
 
+* Checklists
+
+** Cask build for warnings
+
+** package-lint for packaging
+
+** checkdoc for doc warnings
+
+** melpazoid for melpa-specific warnings
+
+*** TODO does melpazoid check for the stuff above? Seems so. Confirm.
+
+ 
