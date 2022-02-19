@@ -4,7 +4,7 @@
 ;; Maintainer: Carlos Scheidegger
 ;; Copyright (C) 2022 RStudio PBC
 ;; Version: 0.0.1
-;; package-requires: ((emacs "25") (polymode "0.2.2") (poly-markdown "0.2.2") (markdown-mode "2.3") (request "0.3.2"))
+;; package-requires: ((emacs "25.1") (polymode "0.2.2") (poly-markdown "0.2.2") (markdown-mode "2.3") (request "0.3.2"))
 ;; URL: https://github.com/quarto-dev/quarto-emacs
 ;; Keywords: languages, multi-modes
 ;;
@@ -149,7 +149,7 @@ Please note that with 'AUTO DETECT' export options, output file
   "Return the full filename of the _quarto.yml project configuration for the present buffer or nil if none is found."
   (let* ((dirs (quarto-mode--parent-directories buffer-file-name))
 	 result)
-    (while (not (null dirs))
+    (while dirs
       (let ((dir (car dirs)))
 	(cond
 	 ((file-exists-p (concat dir "_quarto.yml"))
@@ -262,7 +262,7 @@ To control whether or not to show the display, customize
 		   (member (process-status quarto-mode--preview-process)
 			   (list 'exit 'signal nil))))
 	  (quarto-preview)
-	  (error (format "Opening %s via quarto-preview." name)))
+	  (error "Opening %s via quarto-preview." name))
 	 ;; refuse to run when quarto-preview is working on a different project.
 	 ((not (string-equal this-project-directory
 			     quarto-mode--preview-project))
@@ -277,7 +277,7 @@ To control whether or not to show the display, customize
 			     (file-relative-name
 			      buffer-file-name quarto-mode--preview-project))))
 	    (request req :sync t)
-	    (error (format "Opening %s via quarto-preview." name)))))))))
+	    (error format "Opening %s via quarto-preview." name))))))))
 
 (defun quarto-mode-markdown-command (begin-region end-region buf name)
   "Call quarto, typically from inside `markdown`.
@@ -313,10 +313,9 @@ Ensure quarto has rendered NAME (necessary if in a project).  If not in a projec
 
   ;; tell markdown-mode to use quarto-command for C-c
   (setq markdown-command 'quarto-mode-markdown-command)
-  (setq markdown-command-needs-filename t)
-  )
+  (setq markdown-command-needs-filename t))
 
-(add-hook 'poly-quarto-mode-hook 'quarto-mode-default-hook)
+(add-hook 'poly-quarto-mode-hook #'quarto-mode-default-hook)
 
 ;;; Advice functions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
