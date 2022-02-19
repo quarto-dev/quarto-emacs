@@ -24,7 +24,7 @@ jobs:
       env:
         LOCAL_REPO: ${{ github.workspace }}
         # RECIPE is your recipe as written for MELPA:
-        RECIPE: (shx :repo "quarto-dev/quarto-emacs" :fetcher github)
+        RECIPE: (quarto-mode :repo "quarto-dev/quarto-emacs" :fetcher github)
         # set this to false (or remove it) if the package isn't on MELPA:
         EXIST_OK: false
       run: echo $GITHUB_REF && make -C ~/melpazoid
