@@ -262,7 +262,7 @@ To control whether or not to show the display, customize
 		   (member (process-status quarto-mode--preview-process)
 			   (list 'exit 'signal nil))))
 	  (quarto-preview)
-	  (error "Opening %s via quarto-preview." name))
+	  (error "Opening %s via quarto-preview" name))
 	 ;; refuse to run when quarto-preview is working on a different project.
 	 ((not (string-equal this-project-directory
 			     quarto-mode--preview-project))
@@ -277,7 +277,7 @@ To control whether or not to show the display, customize
 			     (file-relative-name
 			      buffer-file-name quarto-mode--preview-project))))
 	    (request req :sync t)
-	    (error format "Opening %s via quarto-preview." name))))))))
+	    (error "Opening %s via quarto-preview" name))))))))
 
 (defun quarto-mode-markdown-command (begin-region end-region buf name)
   "Call quarto, typically from inside `markdown`.
