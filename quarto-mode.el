@@ -304,6 +304,8 @@ Ensure quarto has rendered NAME (necessary if in a project).  If not in a projec
     (delete-file quarto-input-name)
     (delete-file quarto-output-name)))
 
+(defvar quarto-mode-advice-installed nil)
+
 (defun quarto-mode-default-hook ()
   "Set up the default file-local variables in quarto-mode."
 
@@ -313,7 +315,16 @@ Ensure quarto has rendered NAME (necessary if in a project).  If not in a projec
 
   ;; tell markdown-mode to use quarto-command for C-c
   (setq markdown-command 'quarto-mode-markdown-command)
-  (setq markdown-command-needs-filename t))
+  (setq markdown-command-needs-filename t)
+  (unless quarto-mode-advice-installed
+    (advice-add #'fill-paragraph :around #'quarto-mode--fill-paragraph)
+    (setq quarto-mode-advice-installed t)))
+
+(defun quarto-mode-unload-function ()
+  "Pre-cleanup when `unload-feature` is called."
+  (when quarto-mode-advice-installed
+    (advice-remove #'fill-paragraph #'quarto-mode--fill-paragraph)
+    (setq quarto-mode-adviced-installed nil)))
 
 (add-hook 'poly-quarto-mode-hook #'quarto-mode-default-hook)
 
@@ -360,8 +371,6 @@ passes ARGS to it."
 	(when is-end
 	  (delete-char 1)))))
    (t (apply orig-fun args))))
-
-(advice-add 'fill-paragraph :around #'quarto-mode--fill-paragraph)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
