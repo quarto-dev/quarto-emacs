@@ -324,7 +324,7 @@ Ensure quarto has rendered NAME (necessary if in a project).  If not in a projec
   "Pre-cleanup when `unload-feature` is called."
   (when quarto-mode-advice-installed
     (advice-remove #'fill-paragraph #'quarto-mode--fill-paragraph)
-    (setq quarto-mode-adviced-installed nil)))
+    (setq quarto-mode-advice-installed nil)))
 
 (add-hook 'poly-quarto-mode-hook #'quarto-mode-default-hook)
 
