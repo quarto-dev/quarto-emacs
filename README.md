@@ -4,15 +4,28 @@
 
 ## Installing
 
+Copy `quarto-mode.el` to where you keep your `.el` files (typically `~/.emacs.d`) and add
 
+    (require 'quarto-mode)
+
+to your emacs configuration file.
+
+### Dependencies
+
+Quarto-mode requires the following packages to be installed:
+
+- `(polymode "0.2.2")`
+- `(poly-markdown "0.2.2")`
+- `(markdown-mode "2.3")`
+- `(request "0.3.2")`
+
+### quarto-mode + ESS
+
+If you have [ESS](https://ess.r-project.org/), `quarto-mode` will use it. Otherwise, it won't. Specifically, `quarto-mode` does not depend on ESS (or R), which means that if you want to use those features, you have to install ESS separately.
 
 ### MELPA
 
 Although `quarto-mode` is on melpa, there is currently an issue that prevents `quarto-mode.el` from working on MELPA. We are investigating and will provide a fix as soon as we're confident.
-
-## quarto-mode + ESS
-
-If you have [ESS](https://ess.r-project.org/), `quarto-mode` will use it. Otherwise, it won't. Specifically, `quarto-mode` does not depend on ESS (or R), which means that if you want to use those features, you have to install ESS separately.
 
 # Features
 
