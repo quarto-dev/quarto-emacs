@@ -4,13 +4,11 @@
 
 ## Installing
 
-`quarto-mode` is available on MELPA. From emacs,
 
-```
-M-x refresh-package-contents
-M-x install-package
-  quarto-mode
-```
+
+### MELPA
+
+Although `quarto-mode` is on melpa, there is currently an issue that prevents `quarto-mode.el` from working on MELPA. We are investigating and will provide a fix as soon as we're confident.
 
 ## quarto-mode + ESS
 
