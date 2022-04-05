@@ -32,3 +32,18 @@ Although `quarto-mode` is on melpa, there is currently an issue that prevents `q
 - `M-x quarto-preview`. Start a `quarto preview` server that watches quarto content for changes and automatically refreshes it. If the current buffer has an associated file that exists in a quarto project, the command will preview the entire project. Otherwise, it will preview the specific file.
 - Integration with poly-markdown's compilation. The default poly-markdown configuration runs plain `pandoc` on the document; `quarto-mode` uses `quarto render`.
 
+## Differences in behavior between quarto-mode and markdown-mode
+
+* `C-c C-c *` behavior
+
+  `quarto-mode` uses features specific to quarto that make it behave
+  differently from what `markdown-mode` users might expect. By
+  default, `quarto-mode` uses `quarto preview`, which works through a
+  custom web server, and does not produce disk output upon
+  preview. `quarto preview` is significantly faster than rerendering
+  entire files in interactive mode, so we encourage you to use it.
+  
+  However, if you wish to not use `quarto preview` and instead depend
+  on the typical rendering mode of previewing, you can restore the
+  standard `markdown-mode` behavior by changing the
+  `quarto-force-preview` customization variable.

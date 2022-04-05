@@ -93,8 +93,8 @@
 		       ("revealjs" "html" "revealjs presentation" "revealjs"))) ;; TODO fill this out automatically
   "Quarto Markdown exporter.
 Please note that with 'AUTO DETECT' export options, output file
-  names are inferred by quarto from the appropriate metadata.
-  This, output file names don't comply with `polymode-exporter-output-file-format'."
+names are inferred by quarto from the appropriate metadata.
+That is, output file names don't comply with `polymode-exporter-output-file-format'."
   :group 'polymode-export
   :type 'object)
 
@@ -103,6 +103,12 @@ Please note that with 'AUTO DETECT' export options, output file
 
 (defcustom quarto-preview-display-buffer t
   "When nil, `quarto-preview' does not automatically display buffer."
+  :group 'quarto
+  :type 'boolean)
+
+(defcustom quarto-force-preview t
+  "When t, all markdown rendering commands go through quarto-preview instead of producing
+disk output."
   :group 'quarto
   :type 'boolean)
 
@@ -161,7 +167,6 @@ Please note that with 'AUTO DETECT' export options, output file
 
 (defvar quarto-mode--preview-process nil)
 (defvar quarto-mode--preview-url nil)
-(defvar quarto-mode--preview-project nil)
 
 (defun quarto-mode--process-line (line)
   "Process line LINE from a `quarto-preview' output."
@@ -190,8 +195,12 @@ Please note that with 'AUTO DETECT' export options, output file
 	      (quarto-mode--process-line line)
 	      (setq this-line (+ this-line 1)))))))))
 
+;; we obtained this uuid ourselves on 2022-04-04
+(defconst quarto-mode--quarto-preview-uuid "5E89DF46-0E7B-4604-A76A-58EC4E12A11B")
+
 (defun quarto-preview ()
-  "Start a quarto preview process to automatically rerender documents.
+  "Start (or restart) a quarto preview process to automatically
+rerender documents.
 
 `quarto-preview` checks parent directories for a `_quarto.yml`
 file.  If one is found, then `quarto-preview` previews that entire
@@ -206,31 +215,27 @@ the file system.
 To control whether or not to show the display, customize
 `quarto-preview-display-buffer`."
   (interactive)
-  (let* ((project-directory (quarto-mode--buffer-in-quarto-project-p))
-	 (browser-path (cond (project-directory
-			     (file-relative-name buffer-file-name project-directory))
-			    (t "")))
+  (when quarto-mode--preview-process
+    (delete-process quarto-mode--preview-process))
+  (when (get-buffer "*quarto-preview*")
+    (kill-buffer "*quarto-preview*"))
+    
+  (let* ((browser-path (cond
+			(project-directory
+			 (file-relative-name buffer-file-name project-directory))
+			(t "")))
 	 (process
-	  (cond
-	   (project-directory
-	    (let ((default-directory project-directory))
-	      (make-process :name (format "quarto-preview-%s" project-directory)
-			    :buffer "*quarto-preview*"
-			    :command (list quarto-command
-					   "preview"
-					   "--browser-path"
-					   browser-path
-					   "--no-watch-inputs")
-			    :file-handler t)))
-	   (t
+	  (let ((process-environment (cons (concat "QUARTO_RENDER_TOKEN="
+						   quarto-mode--quarto-preview-uuid)
+					   process-environment)))
 	    (make-process :name (format "quarto-preview-%s" buffer-file-name)
 			  :buffer "*quarto-preview*"
 			  :command (list quarto-command
 					 "preview"
-					 buffer-file-name))))))
+					 buffer-file-name
+					 "--no-watch-inputs")))))
     (setq quarto-mode--preview-process process)
     (with-current-buffer (process-buffer process)
-      (setq quarto-mode--preview-project project-directory)
       (when quarto-preview-display-buffer
 	(display-buffer (current-buffer)))
       (shell-mode)
@@ -245,47 +250,50 @@ To control whether or not to show the display, customize
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.qmd\\'" . poly-quarto-mode))
 
-;; this uuid is defined in quarto-cli/src/project/serve/serve.ts
-(defconst quarto-mode--quarto-render-command "90B3C9E8-0DBC-4BC0-B164-AA2D5C031B28")
+(cl-defun quarto-mode--preview-refresh-complete
+    (&key data response symbol-status error-thrown)
+  "Refresh quarto-preview when the status code of the rerender request is not 200.
 
-(defun quarto-mode--render-project-if-needed (name)
+This is an internal function."
+  (unless (= (request-response-status-code response) 200)
+    (quarto-preview)))
+
+(defun quarto-mode--maybe-preview (name)
   "Call `quarto-preview' with filename NAME when needed.  In that case, errors intentionally to avoid `markdown-command' from finishing."
   (with-current-buffer (get-file-buffer name)
     (let* ((this-project-directory
 	    (quarto-mode--buffer-in-quarto-project-p)))
-      ;; only run these in project mode.
-      (when this-project-directory
+      ;; only run these when preview is enabled
+      (when quarto-force-preview
+	(save-buffer)
 	(cond
 	 ;; no process or exited process: restart
-	 ((or (null quarto-mode--preview-project)
-	      (and quarto-mode--preview-process
-		   (member (process-status quarto-mode--preview-process)
-			   (list 'exit 'signal nil))))
+	 ((and quarto-mode--preview-process
+	       (member (process-status quarto-mode--preview-process)
+		       (list 'exit 'signal nil)))
 	  (quarto-preview)
 	  (error "Opening %s via quarto-preview" name))
-	 ;; refuse to run when quarto-preview is working on a different project.
-	 ((not (string-equal this-project-directory
-			     quarto-mode--preview-project))
-	  (error "`quarto-preview` must be running on the same project as this file.  (To switch projects, close *quarto-preview* and retry.)"))
-	 ;; force render and browse again.
+	 ;; re-run quarto-preview when previous quarto-preview server returns non-200
 	 (t
-	  (let ((req (format "%s://%s:%s/%s/%s"
+	  (let ((req (format "%s://%s:%s/%s?path=%s"
 			     (url-type quarto-mode--preview-url)
 			     (url-host quarto-mode--preview-url)
 			     (url-port quarto-mode--preview-url)
-			     quarto-mode--quarto-render-command
-			     (file-relative-name
-			      buffer-file-name quarto-mode--preview-project))))
-	    (request req :sync t)
-	    (error "Opening %s via quarto-preview" name))))))))
+			     quarto-mode--quarto-preview-uuid
+			     buffer-file-name)))
+	    (request req :sync t
+	      :complete #'quarto-mode--preview-refresh-complete)
+	    ;; this is not really an error,
+	    ;; but it's the best way to signal to emacs that we're done here.
+	    (error "Refreshing %s in quarto-preview" name))))))))
 
 (defun quarto-mode-markdown-command (begin-region end-region buf name)
   "Call quarto, typically from inside `markdown`.
 
 Ensure quarto has rendered NAME (necessary if in a project).  If not in a project, render the region given by BEGIN-REGION and END-REGION, and insert the output of `quarto render` in BUF."
 
-  ;; This handles previews in projects (it all goes through quarto-preview)
-  (quarto-mode--render-project-if-needed name)
+  ;; This handles previews (it all goes through quarto-preview instead of render)
+  (quarto-mode--maybe-preview name)
 
   ;; This handles non-project files.
   ;; Quarto expects files to be in specific locations, so we
@@ -313,7 +321,7 @@ Ensure quarto has rendered NAME (necessary if in a project).  If not in a projec
   ;; because poly-mode uses other modes and we want to change their
   ;; own values
 
-  ;; tell markdown-mode to use quarto-command for C-c
+  ;; tell markdown-mode to use quarto-command for C-c C-c
   (setq markdown-command 'quarto-mode-markdown-command)
   (setq markdown-command-needs-filename t)
   (unless quarto-mode-advice-installed
