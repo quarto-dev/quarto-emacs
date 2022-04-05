@@ -4,11 +4,13 @@
 
 ## Installing
 
-Copy `quarto-mode.el` to where you keep your `.el` files (typically `~/.emacs.d`) and add
+`quarto-mode` is available on MELPA. From emacs,
 
-    (require 'quarto-mode)
-
-to your emacs configuration file.
+```
+M-x refresh-package-contents
+M-x package-install
+  quarto-mode
+```
 
 ### Dependencies
 
@@ -22,10 +24,6 @@ Quarto-mode requires the following packages to be installed:
 ### quarto-mode + ESS
 
 If you have [ESS](https://ess.r-project.org/), `quarto-mode` will use it. Otherwise, it won't. Specifically, `quarto-mode` does not depend on ESS (or R), which means that if you want to use those features, you have to install ESS separately.
-
-### MELPA
-
-Although `quarto-mode` is on melpa, there is currently an issue that prevents `quarto-mode.el` from working on MELPA. We are investigating and will provide a fix as soon as we're confident.
 
 # Features
 
