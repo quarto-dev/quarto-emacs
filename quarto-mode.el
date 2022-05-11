@@ -221,7 +221,7 @@ To control whether or not to show the display, customize
     (kill-buffer "*quarto-preview*"))
     
   (let* ((browser-path (cond
-			(project-directory
+			((boundp 'project-directory)
 			 (file-relative-name buffer-file-name project-directory))
 			(t "")))
 	 (process
