@@ -12,6 +12,18 @@ M-x package-install
   quarto-mode
 ```
 
+### Using `quarto-mode`
+
+The `quarto-mode` package will associate a quarto [polymode](https://github.com/polymode/polymode) to `.qmd` files.
+That means that there isn't an actual `quarto-mode` mode. 
+If you want to associate other files to the quarto polymode, you should use `poly-quarto-mode`, such as:
+
+```elisp
+;; Note that the following is not necessary to run quarto-mode! It's merely illustrating
+;; how to associate different extensions to the mode.
+(add-to-list 'auto-mode-alist '("\\.Rmd\\'" . poly-quarto-mode))
+```
+
 ### Dependencies
 
 Quarto-mode requires the following packages to be installed:
