@@ -220,7 +220,8 @@ To control whether or not to show the display, customize
   (when (get-buffer "*quarto-preview*")
     (kill-buffer "*quarto-preview*"))
     
-  (let* ((browser-path (cond
+  (let* ((project-directory (quarto-mode--buffer-in-quarto-project-p))
+	 (browser-path (cond
 			(project-directory
 			 (file-relative-name buffer-file-name project-directory))
 			(t "")))
