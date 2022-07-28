@@ -7,7 +7,7 @@
 `quarto-mode` is available on MELPA. From emacs,
 
 ```
-M-x refresh-package-contents
+M-x package-refresh-contents
 M-x package-install
   quarto-mode
 ```
