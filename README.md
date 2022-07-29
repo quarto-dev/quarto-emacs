@@ -22,6 +22,11 @@ If you want to associate other files to the quarto polymode, you should use `pol
 ;; Note that the following is not necessary to run quarto-mode! It's merely illustrating
 ;; how to associate different extensions to the mode.
 (add-to-list 'auto-mode-alist '("\\.Rmd\\'" . poly-quarto-mode))
+
+;; Or, with use-package:
+(use-package quarto-mode
+  :mode (("\\.Rmd" . poly-quarto-mode))
+  )
 ```
 
 ### Dependencies
