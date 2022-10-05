@@ -47,8 +47,6 @@
 (defconst quarto-mode--docstring
   "Minor mode for editing quarto files.")
 
-(defvar quarto-mode-map (make-sparse-keymap))
-
 ;; this package doesn't require poly-R, ess-mode, or ess-r-mode, but
 ;; works differently when these are available.
 (if (and (require 'ess-mode nil t)
@@ -235,7 +233,7 @@ To control whether or not to show the display, customize
       (set-process-filter process 'quarto-mode--process-filter))))
 
 (easy-menu-define quarto-menu
-  (list quarto-mode-map)
+  (list poly-quarto-mode-map)
   "Menu for quarto-mode"
   '("Quarto"
     ["Start Preview" quarto-preview t]))
