@@ -51,19 +51,21 @@
 
 ;; this package doesn't require poly-R, ess-mode, or ess-r-mode, but
 ;; works differently when these are available.
-(if (and (require 'ess-mode nil 'noerror)
-	 (require 'ess-r-mode nil 'noerror)
-	 (require 'poly-R nil 'noerror))
+(if (and (require 'ess-mode nil t)
+         (require 'ess-r-mode nil t)
+         (require 'poly-R nil t))
 ;;;###autoload (autoload 'poly-quarto-mode "quarto-mode")
-    (eval '(define-polymode poly-quarto-mode poly-markdown+r-mode
-	     "Minor mode for editing quarto files."
-	     :lighter " Quarto"
-	     :keymap quarto-mode-map))
+    (define-polymode poly-quarto-mode poly-markdown+r-mode
+      "Minor mode for editing quarto files."
+      :lighter " Quarto"
+      :keymap nil
+      :innermodes '(:inherit poly-r-markdown-inline-code-innermode))
 ;;;###autoload (autoload 'poly-quarto-mode "quarto-mode")
-  (eval '(define-polymode poly-quarto-mode poly-markdown-mode
-	   "Minor mode for editing quarto files."
-	   :lighter " Quarto"
-	   :keymap quarto-mode-map)))
+  (define-polymode poly-quarto-mode poly-markdown-mode
+    "Minor mode for editing quarto files."
+    :lighter " Quarto"
+    :keymap nil
+    :innermodes '(:inherit poly-markdown-inline-code-innermode)))
 
 ;;; Customizable variables ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
