@@ -68,7 +68,7 @@
 ;;; Customizable variables ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defgroup quarto nil
-  "Settings for the quarto polymode"
+  "Settings for the quarto polymode."
   :group 'polymode)
 
 (defcustom quarto-root-polymode
@@ -107,8 +107,8 @@ That is, output file names don't comply with `polymode-exporter-output-file-form
   :type 'boolean)
 
 (defcustom quarto-force-preview t
-  "When t, all markdown rendering commands go through quarto-preview instead of producing
-disk output."
+  "Non-nil means markdown rendering commands go through `quarto-preview'.
+Otherwise generate disk output."
   :group 'quarto
   :type 'boolean)
 
@@ -189,8 +189,7 @@ disk output."
 (defconst quarto-mode--quarto-preview-uuid "5E89DF46-0E7B-4604-A76A-58EC4E12A11B")
 
 (defun quarto-preview ()
-  "Start (or restart) a quarto preview process to automatically
-rerender documents.
+  "Start (or restart) a quarto preview process to rerender documents.
 
 `quarto-preview` checks parent directories for a `_quarto.yml`
 file.  If one is found, then `quarto-preview` previews that entire
@@ -234,7 +233,7 @@ To control whether or not to show the display, customize
 
 (easy-menu-define quarto-menu
   (list poly-quarto-mode-map)
-  "Menu for quarto-mode"
+  "Menu for quarto-mode."
   '("Quarto"
     ["Start Preview" quarto-preview t]))
 
@@ -243,14 +242,17 @@ To control whether or not to show the display, customize
 
 (cl-defun quarto-mode--preview-refresh-complete
     (&key data response symbol-status error-thrown)
-  "Refresh quarto-preview when the status code of the rerender request is not 200.
+  "Refresh `quarto-preview' unless status code of rerender request is 200.
 
-This is an internal function."
+This is an internal function.  RESPONSE is used to determine status code.
+DATA, SYMBOL-STATUS and ERROR-THROWN are ignored."
   (unless (= (request-response-status-code response) 200)
     (quarto-preview)))
 
 (defun quarto-mode--maybe-preview (name)
-  "Call `quarto-preview' with filename NAME when needed.  In that case, errors intentionally to avoid `markdown-command' from finishing."
+  "Call `quarto-preview' with filename NAME when needed.
+In that case, errors intentionally to avoid `markdown-command'
+from finishing."
   (with-current-buffer (get-file-buffer name)
     (let* ((this-project-directory
 	    (quarto-mode--buffer-in-quarto-project-p)))
