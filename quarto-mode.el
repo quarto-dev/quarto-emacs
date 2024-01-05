@@ -118,6 +118,12 @@ disk output."
   :group 'quarto
   :type '(choice (string :tag "Shell command") (repeat (string)) function))
 
+(defcustom quarto-preview-watch-inputs nil
+  "When nil, 'quarto-preview' does not automatically refresh the
+preview when the input file is updated."
+  :group 'quarto
+  :type 'boolean)
+
 ;;; Functions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun quarto-pm--output-file-sniffer ()
@@ -221,10 +227,14 @@ To control whether or not to show the display, customize
 					   process-environment)))
 	    (make-process :name (format "quarto-preview-%s" buffer-file-name)
 			  :buffer "*quarto-preview*"
-			  :command (list quarto-command
+			  :command (if quarto-preview-watch-inputs
+				       (list quarto-command
+					     "preview"
+					     buffer-file-name)
+				     (list quarto-command
 					 "preview"
 					 buffer-file-name
-					 "--no-watch-inputs")))))
+					 "--no-watch-inputs"))))))
     (setq quarto-mode--preview-process process)
     (with-current-buffer (process-buffer process)
       (when quarto-preview-display-buffer
